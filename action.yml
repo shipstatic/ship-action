@@ -1,38 +1,38 @@
-name: 'Ship'
-description: 'Deploy static files using @shipstatic/ship SDK'
-author: 'ShipStatic'
+name: "ShipStatic"
+description: "Deploy static files using @shipstatic/ship SDK"
+author: "ShipStatic"
 inputs:
   api-key:
-    description: 'ShipStatic API key (required for authentication)'
+    description: "ShipStatic API key (required for authentication)"
     required: true
   api-url:
-    description: 'ShipStatic API endpoint URL'
+    description: "ShipStatic API endpoint URL"
     required: false
-    default: 'https://api.shipstatic.com'
+    default: "https://api.shipstatic.com"
   operation:
-    description: 'Operation to perform: deploy or alias'
+    description: "Operation to perform: deploy or alias"
     required: true
-    default: 'deploy'
+    default: "deploy"
   path:
-    description: 'Path to static files to deploy'
+    description: "Path to static files to deploy"
     required: false
-    default: '.'
+    default: "."
   alias-name:
-    description: 'Alias name to create (required for alias operation)'
+    description: "Alias name to create (required for alias operation)"
     required: false
   deployment-id:
-    description: 'Deployment ID to point alias to (required for alias operation)'
+    description: "Deployment ID to point alias to (required for alias operation)"
     required: false
 outputs:
   deployment-id:
-    description: 'The deployment ID'
+    description: "The deployment ID"
   deployment-url:
-    description: 'The deployment URL'
+    description: "The deployment URL"
   alias-url:
-    description: 'The alias URL (for alias operations)'
+    description: "The alias URL (for alias operations)"
 runs:
-  using: 'node20'
-  main: 'index.js'
+  using: "node20"
+  main: "index.js"
 branding:
-  icon: 'upload-cloud'
-  color: 'orange'
+  icon: "upload-cloud"
+  color: "orange"
