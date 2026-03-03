@@ -65,7 +65,7 @@ permissions:
 
 ## Example
 
-See [ship-action-example](https://github.com/shipstatic/ship-action-example) for a complete working example using React + Vite.
+See [action-example](https://github.com/shipstatic/action-example) for a complete working example using React + Vite.
 
 ## Setup
 
