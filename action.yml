@@ -1,38 +1,52 @@
-name: "ShipStatic"
-description: "Deploy static files using @shipstatic/ship SDK"
-author: "ShipStatic"
+name: 'Shipstatic Deploy'
+description: 'Deploy a static site to Shipstatic'
+branding:
+  icon: 'upload-cloud'
+  color: 'blue'
+
 inputs:
   api-key:
-    description: "ShipStatic API key (required for authentication)"
+    description: 'Shipstatic API key'
     required: true
-  api-url:
-    description: "ShipStatic API endpoint URL"
-    required: false
-    default: "https://api.shipstatic.com"
-  operation:
-    description: "Operation to perform: deploy or alias"
-    required: true
-    default: "deploy"
   path:
-    description: "Path to static files to deploy"
+    description: 'Directory to deploy'
     required: false
-    default: "."
-  alias-name:
-    description: "Alias name to create (required for alias operation)"
+    default: '.'
+  domain:
+    description: 'Domain to link to the deployment'
     required: false
-  deployment-id:
-    description: "Deployment ID to point alias to (required for alias operation)"
-    required: false
+
 outputs:
-  deployment-id:
-    description: "The deployment ID"
-  deployment-url:
-    description: "The deployment URL"
-  alias-url:
-    description: "The alias URL (for alias operations)"
+  id:
+    description: 'Deployment ID'
+    value: ${{ steps.deploy.outputs.id }}
+  url:
+    description: 'Deployment URL'
+    value: ${{ steps.deploy.outputs.url }}
+
 runs:
-  using: "node20"
-  main: "index.js"
-branding:
-  icon: "upload-cloud"
-  color: "orange"
+  using: 'composite'
+  steps:
+    - name: Install Shipstatic CLI
+      shell: bash
+      run: npm install -g @shipstatic/ship@latest
+
+    - name: Deploy
+      id: deploy
+      shell: bash
+      env:
+        SHIP_API_KEY: ${{ inputs.api-key }}
+        DEPLOY_PATH: ${{ inputs.path }}
+      run: |
+        OUTPUT=$(ship "$DEPLOY_PATH" --json --no-color)
+        echo "id=$(echo "$OUTPUT" | jq -r 'select(.deployment) | .deployment')" >> "$GITHUB_OUTPUT"
+        echo "url=$(echo "$OUTPUT" | jq -r 'select(.url) | .url')" >> "$GITHUB_OUTPUT"
+
+    - name: Link domain
+      if: ${{ inputs.domain != '' }}
+      shell: bash
+      env:
+        SHIP_API_KEY: ${{ inputs.api-key }}
+        DOMAIN: ${{ inputs.domain }}
+        DEPLOYMENT_ID: ${{ steps.deploy.outputs.id }}
+      run: ship domains set "$DOMAIN" "$DEPLOYMENT_ID" --json --no-color
