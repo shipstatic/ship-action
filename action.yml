@@ -1,5 +1,5 @@
 name: 'Shipstatic Deploy'
-description: 'Deploy a static site to Shipstatic'
+description: 'Deploy a static site to Shipstatic and link it to your domain'
 branding:
   icon: 'upload-cloud'
   color: 'blue'
