@@ -34,22 +34,6 @@ runs:
       shell: bash
       run: npm install -g @shipstatic/ship@latest
 
-    - name: Create GitHub deployment
-      if: ${{ inputs.github-token != '' }}
-      id: github-deployment
-      shell: bash
-      env:
-        GH_TOKEN: ${{ inputs.github-token }}
-        GH_REPO: ${{ github.repository }}
-        GH_SHA: ${{ github.sha }}
-        GH_EVENT: ${{ github.event_name }}
-      run: |
-        ENVIRONMENT=$([[ "$GH_EVENT" == "pull_request" ]] && echo "preview" || echo "production")
-        PAYLOAD=$(jq -n --arg ref "$GH_SHA" --arg env "$ENVIRONMENT" \
-          '{ref: $ref, environment: $env, auto_merge: false, required_contexts: []}')
-        ID=$(echo "$PAYLOAD" | gh api "repos/$GH_REPO/deployments" --input - --jq '.id')
-        echo "id=$ID" >> "$GITHUB_OUTPUT"
-
     - name: Deploy
       id: deploy
       shell: bash
@@ -62,7 +46,7 @@ runs:
         echo "url=$(echo "$OUTPUT" | jq -r 'select(.url) | .url')" >> "$GITHUB_OUTPUT"
 
     - name: Link domain
-      if: ${{ inputs.domain != '' }}
+      if: ${{ inputs.domain != '' && steps.deploy.outputs.id != '' }}
       shell: bash
       env:
         SHIP_API_KEY: ${{ inputs.api-key }}
@@ -70,21 +54,28 @@ runs:
         DEPLOYMENT_ID: ${{ steps.deploy.outputs.id }}
       run: ship domains set "$DOMAIN" "$DEPLOYMENT_ID" --json --no-color
 
-    - name: Update GitHub deployment status
-      if: ${{ steps.github-deployment.outputs.id != '' }}
+    - name: Create GitHub deployment
+      if: ${{ inputs.github-token != '' && steps.deploy.outputs.url != '' }}
+      continue-on-error: true
       shell: bash
       env:
         GH_TOKEN: ${{ inputs.github-token }}
         GH_REPO: ${{ github.repository }}
-        GH_DEPLOYMENT_ID: ${{ steps.github-deployment.outputs.id }}
+        GH_SHA: ${{ github.sha }}
+        GH_EVENT: ${{ github.event_name }}
         DEPLOY_URL: ${{ steps.deploy.outputs.url }}
       run: |
-        gh api "repos/$GH_REPO/deployments/$GH_DEPLOYMENT_ID/statuses" \
+        ENVIRONMENT=$([[ "$GH_EVENT" == "pull_request" ]] && echo "preview" || echo "production")
+        PAYLOAD=$(jq -n --arg ref "$GH_SHA" --arg env "$ENVIRONMENT" \
+          '{ref: $ref, environment: $env, auto_merge: false, required_contexts: []}')
+        ID=$(echo "$PAYLOAD" | gh api "repos/$GH_REPO/deployments" --input - --jq '.id')
+        gh api "repos/$GH_REPO/deployments/$ID/statuses" \
           -f state=success \
           -f environment_url="$DEPLOY_URL"
 
     - name: Comment on PR
-      if: ${{ inputs.github-token != '' && github.event_name == 'pull_request' }}
+      if: ${{ inputs.github-token != '' && steps.deploy.outputs.url != '' && github.event_name == 'pull_request' }}
+      continue-on-error: true
       shell: bash
       env:
         GH_TOKEN: ${{ inputs.github-token }}

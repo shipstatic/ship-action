@@ -10,6 +10,10 @@ on:
   push:
     branches: [main]
 
+permissions:
+  deployments: write
+  pull-requests: write
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -42,7 +46,13 @@ The `github-token` input enables two features:
 - **PR comments** — posts the deployment URL as a comment on pull requests
 - **GitHub Deployments** — creates deployment objects visible in the repo sidebar
 
-Use the automatic `${{ secrets.GITHUB_TOKEN }}` — no extra secrets needed.
+Use the automatic `${{ secrets.GITHUB_TOKEN }}` — no extra secrets needed. Your workflow needs these permissions:
+
+```yaml
+permissions:
+  deployments: write
+  pull-requests: write
+```
 
 ## Outputs
 
