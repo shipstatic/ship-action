@@ -25,6 +25,7 @@ jobs:
           api-key: ${{ secrets.SHIP_API_KEY }}
           path: ./dist
           domain: www.example.com
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 ```
 
 ## Inputs
@@ -34,6 +35,14 @@ jobs:
 | `api-key` | Yes | — | Shipstatic API key |
 | `path` | No | `.` | Directory to deploy |
 | `domain` | No | — | Domain to link to the deployment |
+| `github-token` | No | — | GitHub token for PR comments and deployment tracking |
+
+The `github-token` input enables two features:
+
+- **PR comments** — posts the deployment URL as a comment on pull requests
+- **GitHub Deployments** — creates deployment objects visible in the repo sidebar
+
+Use the automatic `${{ secrets.GITHUB_TOKEN }}` — no extra secrets needed.
 
 ## Outputs
 
@@ -41,27 +50,6 @@ jobs:
 |--------|-------------|
 | `id` | Deployment ID |
 | `url` | Deployment URL |
-
-## Full Version
-
-For PR comments and GitHub deployment tracking, use the full action:
-
-```yaml
-      - name: Deploy
-        uses: shipstatic/ship-action/full@v1
-        with:
-          api-key: ${{ secrets.SHIP_API_KEY }}
-          path: ./dist
-          domain: www.example.com
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-```
-
-This adds:
-
-- **PR comments** — posts the deployment URL as a comment on pull requests
-- **GitHub Deployments** — creates deployment objects visible in the repo sidebar
-
-The `github-token` input activates both features. Use the automatic `${{ secrets.GITHUB_TOKEN }}` — no extra secrets needed.
 
 ## Example
 
