@@ -1,0 +1,97 @@
+name: 'Shipstatic Deploy (Full)'
+description: 'Deploy a static site to Shipstatic with PR comments and GitHub deployment tracking'
+branding:
+  icon: 'upload-cloud'
+  color: 'blue'
+
+inputs:
+  api-key:
+    description: 'Shipstatic API key'
+    required: true
+  path:
+    description: 'Directory to deploy'
+    required: false
+    default: '.'
+  domain:
+    description: 'Domain to link to the deployment'
+    required: false
+  github-token:
+    description: 'GitHub token for PR comments and deployment tracking'
+    required: false
+
+outputs:
+  id:
+    description: 'Deployment ID'
+    value: ${{ steps.deploy.outputs.id }}
+  url:
+    description: 'Deployment URL'
+    value: ${{ steps.deploy.outputs.url }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Install Shipstatic CLI
+      shell: bash
+      run: npm install -g @shipstatic/ship@latest
+
+    - name: Create GitHub deployment
+      if: ${{ inputs.github-token != '' }}
+      id: github-deployment
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        GH_REPO: ${{ github.repository }}
+        GH_SHA: ${{ github.sha }}
+        GH_EVENT: ${{ github.event_name }}
+      run: |
+        ENVIRONMENT=$([[ "$GH_EVENT" == "pull_request" ]] && echo "preview" || echo "production")
+        PAYLOAD=$(jq -n --arg ref "$GH_SHA" --arg env "$ENVIRONMENT" \
+          '{ref: $ref, environment: $env, auto_merge: false, required_contexts: []}')
+        ID=$(echo "$PAYLOAD" | gh api "repos/$GH_REPO/deployments" --input - --jq '.id')
+        echo "id=$ID" >> "$GITHUB_OUTPUT"
+
+    - name: Deploy
+      id: deploy
+      shell: bash
+      env:
+        SHIP_API_KEY: ${{ inputs.api-key }}
+        DEPLOY_PATH: ${{ inputs.path }}
+      run: |
+        OUTPUT=$(ship "$DEPLOY_PATH" --json --no-color)
+        echo "id=$(echo "$OUTPUT" | jq -r 'select(.deployment) | .deployment')" >> "$GITHUB_OUTPUT"
+        echo "url=$(echo "$OUTPUT" | jq -r 'select(.url) | .url')" >> "$GITHUB_OUTPUT"
+
+    - name: Link domain
+      if: ${{ inputs.domain != '' }}
+      shell: bash
+      env:
+        SHIP_API_KEY: ${{ inputs.api-key }}
+        DOMAIN: ${{ inputs.domain }}
+        DEPLOYMENT_ID: ${{ steps.deploy.outputs.id }}
+      run: ship domains set "$DOMAIN" "$DEPLOYMENT_ID" --json --no-color
+
+    - name: Update GitHub deployment status
+      if: ${{ steps.github-deployment.outputs.id != '' }}
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        GH_REPO: ${{ github.repository }}
+        GH_DEPLOYMENT_ID: ${{ steps.github-deployment.outputs.id }}
+        DEPLOY_URL: ${{ steps.deploy.outputs.url }}
+      run: |
+        gh api "repos/$GH_REPO/deployments/$GH_DEPLOYMENT_ID/statuses" \
+          -f state=success \
+          -f environment_url="$DEPLOY_URL"
+
+    - name: Comment on PR
+      if: ${{ inputs.github-token != '' && github.event_name == 'pull_request' }}
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+        GH_REPO: ${{ github.repository }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        DEPLOY_URL: ${{ steps.deploy.outputs.url }}
+      run: |
+        COMMENT="Deployed to $DEPLOY_URL"
+        gh pr comment "$PR_NUMBER" --repo "$GH_REPO" --body "$COMMENT" --edit-last 2>/dev/null ||
+        gh pr comment "$PR_NUMBER" --repo "$GH_REPO" --body "$COMMENT"

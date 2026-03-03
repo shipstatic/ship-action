@@ -20,7 +20,7 @@ jobs:
         run: npm ci && npm run build
 
       - name: Deploy
-        uses: shipstatic/action@v1
+        uses: shipstatic/ship-action@v1
         with:
           api-key: ${{ secrets.SHIP_API_KEY }}
           path: ./dist
@@ -41,6 +41,31 @@ jobs:
 |--------|-------------|
 | `id` | Deployment ID |
 | `url` | Deployment URL |
+
+## Full Version
+
+For PR comments and GitHub deployment tracking, use the full action:
+
+```yaml
+      - name: Deploy
+        uses: shipstatic/ship-action/full@v1
+        with:
+          api-key: ${{ secrets.SHIP_API_KEY }}
+          path: ./dist
+          domain: www.example.com
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+```
+
+This adds:
+
+- **PR comments** — posts the deployment URL as a comment on pull requests
+- **GitHub Deployments** — creates deployment objects visible in the repo sidebar
+
+The `github-token` input activates both features. Use the automatic `${{ secrets.GITHUB_TOKEN }}` — no extra secrets needed.
+
+## Example
+
+See [ship-action-example](https://github.com/shipstatic/ship-action-example) for a complete working example using React + Vite.
 
 ## Setup
 
