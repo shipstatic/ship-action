@@ -41,8 +41,9 @@ runs:
         SHIP_API_KEY: ${{ inputs.api-key }}
         SHIP_VIA: git
         DEPLOY_PATH: ${{ inputs.path }}
+        GIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
       run: |
-        OUTPUT=$(ship "$DEPLOY_PATH" --json --no-color)
+        OUTPUT=$(ship "$DEPLOY_PATH" --label "${GIT_SHA:0:7}" --json --no-color)
         echo "id=$(echo "$OUTPUT" | jq -r 'select(.deployment) | .deployment')" >> "$GITHUB_OUTPUT"
         echo "url=$(echo "$OUTPUT" | jq -r 'select(.url) | .url')" >> "$GITHUB_OUTPUT"
 
@@ -62,7 +63,7 @@ runs:
       env:
         GH_TOKEN: ${{ inputs.github-token }}
         GH_REPO: ${{ github.repository }}
-        GH_SHA: ${{ github.sha }}
+        GH_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         GH_EVENT: ${{ github.event_name }}
         DEPLOY_URL: ${{ steps.deploy.outputs.url }}
       run: |
