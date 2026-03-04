@@ -39,6 +39,7 @@ runs:
       shell: bash
       env:
         SHIP_API_KEY: ${{ inputs.api-key }}
+        SHIP_VIA: git
         DEPLOY_PATH: ${{ inputs.path }}
       run: |
         OUTPUT=$(ship "$DEPLOY_PATH" --json --no-color)
